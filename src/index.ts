@@ -1,7 +1,16 @@
 import { IAnySend } from './IAnySend'
 import { IAxiosSend } from './IAxiosSend'
+import { ProxySend, Controller, Unit, Aop, Loading, ShowNotice } from './Decorator'
+import { getIn } from './Helper'
 
 export default {
   IAnySend,
-  IAxiosSend
+  IAxiosSend,
+  ProxySend,
+  Controller,
+  Unit,
+  Aop,
+  Loading,
+  ShowNotice,
+  getIn
 }
