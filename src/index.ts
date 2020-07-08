@@ -3,14 +3,4 @@ import { IAxiosSend } from './IAxiosSend'
 import { ProxySend, Controller, Unit, Aop, Loading, ShowNotice } from './Decorator'
 import { getIn } from './Helper'
 
-export default {
-  IAnySend,
-  IAxiosSend,
-  ProxySend,
-  Controller,
-  Unit,
-  Aop,
-  Loading,
-  ShowNotice,
-  getIn
-}
+export { IAnySend, IAxiosSend, ProxySend, Controller, Unit, Aop, Loading, ShowNotice, getIn }

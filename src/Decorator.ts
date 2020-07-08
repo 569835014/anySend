@@ -30,8 +30,8 @@ const handlerAOP: Function = (param: any, key: string, context: any) => {
 }
 export function Aop(before?: IAopParam, after?: IAopParam): MethodDecorator {
   return (target, propertyKey, descriptor: TypedPropertyDescriptor<any>) => {
-    const prefix: string = Reflect.getMetadata('Controller', target)
-    const unit: string = Reflect.getMetadata('Unit', target)
+    const prefix: string = Reflect.getMetadata('Controller', target) || ''
+    const unit: string = Reflect.getMetadata('Unit', target) || ''
     const { value } = descriptor
     type TargetValue = typeof value
     type Param = ParamType<TargetValue>
@@ -51,7 +51,7 @@ export function Aop(before?: IAopParam, after?: IAopParam): MethodDecorator {
           await handlerAOP(param, 'before', this)(param)
         }
       }
-      const result: Return = await value(param)
+      const result: Return = await value.call(this, param)
       if (!param.closeAfter) {
         if (typeof after === 'function') {
           await after.call(this, param)
@@ -61,7 +61,6 @@ export function Aop(before?: IAopParam, after?: IAopParam): MethodDecorator {
       }
       return result
     }
-    return descriptor
   }
 }
 // 渲染loading
@@ -87,7 +86,6 @@ export function Loading(message: string): MethodDecorator {
         }
       }
     }
-    return descriptor
   }
 }
 
