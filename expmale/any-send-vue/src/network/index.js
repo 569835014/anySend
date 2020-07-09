@@ -1,4 +1,4 @@
-import { IAxiosSend, ProxySend, Loading } from 'anysend/dist/anysend.es5'
+import { IAxiosSend, ProxySend, Loading, Path, Controller, Unit, UnLink } from 'anysend/dist/anysend.es5'
 
 import axios from 'axios'
 @ProxySend({
@@ -7,10 +7,22 @@ import axios from 'axios'
   },
   after(){},
   renderLoading(){
-    console.info('render',window.$Spin)
-    console.info(this)
+   if(window.$Spin){
+     window.$Spin.show();
+   }
+  },
+  closeLoading(){
+    console.info(arguments)
+    if(window.$Spin){
+      setTimeout(()=>{
+        window.$Spin.hide()
+      },500)
+    }
   }
 })
+@Controller('/dev')
+@Unit('.')
+
 class AxiosSend extends IAxiosSend{
   init(config, plugin) {
     return super.init(config, plugin)
@@ -32,7 +44,10 @@ class AxiosSend extends IAxiosSend{
 
   }
   @Loading('sss')
-  list(){}
+  @Path('api')
+  @UnLink()
+  list(options){
+    return this.send(options);
+  }
 }
-const a = new AxiosSend({},axios)
-console.info(a.list());
+export default new AxiosSend({},axios)

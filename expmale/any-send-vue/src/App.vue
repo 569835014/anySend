@@ -7,12 +7,15 @@
 
 <script>
 import HelloWorld from './components/HelloWorld.vue'
-import './network'
+import send from './network/'
 
 export default {
   name: 'App',
   components: {
     HelloWorld
+  },
+  mounted() {
+    send.list();
   }
 }
 </script>

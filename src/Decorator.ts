@@ -10,12 +10,32 @@ export function ProxySend(proxy: any): ClassDecorator {
 }
 export function Controller(path: string): ClassDecorator {
   return target => {
-    Reflect.defineMetadata('Controller', path, target)
+    Reflect.defineMetadata('Controller', path, target.prototype)
+    return target
   }
 }
+export function UnLink(link = true): MethodDecorator {
+  return (target, propertyKey, descriptor: TypedPropertyDescriptor<any>) => {
+    const { value } = descriptor
+    type TargetValue = typeof value
+    type Return = ReturnType<TargetValue>
+
+    if (link) {
+      descriptor.value = async function(...params: any[]): Promise<Return> {
+        const path: string = Reflect.getMetadata('Path', target) || ''
+        let [param] = params
+        params.shift()
+        param.url = path
+        return value.apply(this, [param].concat(params))
+      }
+    }
+  }
+}
+
 export function Unit(mark: string): ClassDecorator {
   return target => {
-    Reflect.defineMetadata('Unit', mark, target)
+    Reflect.defineMetadata('Unit', mark, target.prototype)
+    return target
   }
 }
 const handlerAOP: Function = (param: any, key: string, context: any) => {
@@ -28,38 +48,59 @@ const handlerAOP: Function = (param: any, key: string, context: any) => {
   }
   return () => {}
 }
-export function Aop(before?: IAopParam, after?: IAopParam): MethodDecorator {
-  return (target, propertyKey, descriptor: TypedPropertyDescriptor<any>) => {
-    const prefix: string = Reflect.getMetadata('Controller', target) || ''
-    const unit: string = Reflect.getMetadata('Unit', target) || ''
+export function Path(url: string): MethodDecorator {
+  return (target: any, propertyKey, descriptor: TypedPropertyDescriptor<any>) => {
     const { value } = descriptor
     type TargetValue = typeof value
-    type Param = ParamType<TargetValue>
     type Return = ReturnType<TargetValue>
-    descriptor.value = async function(param: Param): Promise<Return> {
+    Reflect.defineMetadata('Path', url, target)
+    descriptor.value = async function(...params: any[]): Promise<Return> {
+      url = url + ''
+      let [param] = params
+      params.shift()
+      const prefix: string = Reflect.getMetadata('Controller', this) || ''
+      const unit: string = Reflect.getMetadata('Unit', this) || '/'
       if (!param) param = {}
-      const prefixUrl = prefix.endsWith(unit) ? prefix : prefix + unit
-      param.url += prefixUrl
+      const suffixUrl = url.startsWith(unit) ? url : unit + url
+      param.url = prefix + suffixUrl
+      return value.apply(this, [param].concat(params))
+    }
+  }
+}
+export function Aop(before?: IAopParam, after?: IAopParam): MethodDecorator {
+  return (target, propertyKey, descriptor: TypedPropertyDescriptor<any>) => {
+    const { value } = descriptor
+    type TargetValue = typeof value
+    type Return = ReturnType<TargetValue>
+    descriptor.value = async function(...params: any[]): Promise<Return> {
+      //第一个必须是配置参数
+      let [param] = params
+      params.shift()
+      if (!param) param = {}
       if (typeof before === 'string') {
         param.beforeMessage = before
       }
       // 装饰器优先  => 参数的 => 全局的
       if (!param.closeBefore) {
         if (typeof before === 'function') {
-          await before.call(this, param)
+          await before.apply(this, params)
         } else {
           await handlerAOP(param, 'before', this)(param)
         }
       }
-      const result: Return = await value.call(this, param)
-      if (!param.closeAfter) {
-        if (typeof after === 'function') {
-          await after.call(this, param)
-        } else {
-          await handlerAOP(param, 'after', this)(result, param)
+      try {
+        const result: Return = await value.apply(this, [param].concat(params))
+        if (!param.closeAfter) {
+          if (typeof after === 'function') {
+            await after.call(this, param)
+          } else {
+            await handlerAOP(param, 'after', this)(result, param)
+          }
         }
+        return result
+      } catch (e) {
+        throw e
       }
-      return result
     }
   }
 }
@@ -68,16 +109,17 @@ export function Loading(message: string): MethodDecorator {
   return (target, propertyKey, descriptor: TypedPropertyDescriptor<any>) => {
     const { value } = descriptor
     type TargetValue = typeof value
-    type Param = ParamType<TargetValue>
     type Return = ReturnType<TargetValue>
-    descriptor.value = async function(this: any, param: Param): Promise<Return> {
+    descriptor.value = async function(this: any, ...params: any[]): Promise<Return> {
+      let [param] = params
+      params.shift()
       if (!param) param = {}
       param.loadingMessage = message
       if (this.renderLoading) {
         await this.renderLoading(param)
       }
       try {
-        return value.call(this, param)
+        return value.apply(this, [param].concat(params))
       } catch (e) {
         throw e
       } finally {
@@ -93,14 +135,15 @@ export function ShowNotice(successMessage?: string, errorMessage?: string): Meth
   return (target, propertyKey, descriptor: TypedPropertyDescriptor<any>) => {
     const { value } = descriptor
     type TargetValue = typeof value
-    type Param = ParamType<TargetValue>
     type Return = ReturnType<TargetValue>
-    descriptor.value = async function(this: any, param: Param): Promise<Return> {
+    descriptor.value = async function(this: any, ...params: any[]): Promise<Return> {
+      let [param] = params
+      params.shift()
       if (!param) param = {}
       param.successMessage = successMessage
       param.errorMessage = errorMessage
       try {
-        const result = await value.call(this, param)
+        const result = await value.apply(this, [param].concat(params))
         if (this.renderNotice) {
           this.renderNotice(param, result)
         }

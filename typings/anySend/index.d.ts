@@ -10,9 +10,9 @@ declare interface IAxiosRequestConfig extends IOptions,AxiosRequestConfig{
 }
 declare type Surround = (...arg:any[])=>Promise<boolean | void >
 declare interface IBaseProxy {
-  renderLoading:()=>void
-  renderNotice:()=>void
-  closeLoading:()=>void
+  renderLoading: (...param:any[])=>void
+  renderNotice:(...param:any[])=>void
+  closeLoading:(...param:any[])=>void
   before:Surround
   after:Surround
   [name:string]:any
